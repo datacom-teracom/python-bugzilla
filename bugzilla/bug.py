@@ -29,6 +29,7 @@ class Bug(object):
         self.bugzilla = bugzilla
         self._rawdata = {}
         self.autorefresh = autorefresh
+        self.summary = ''
 
         # pylint: disable=protected-access
         self._aliases = self.bugzilla._get_bug_aliases()
@@ -359,6 +360,23 @@ class Bug(object):
         return self.bugzilla.update_bugs([self.bug_id],
             self.bugzilla.build_update(flags=flaglist))
 
+
+    #######################
+    # Bug fields handling #
+    #######################
+
+    def update_summary(self, summary):
+        """
+        Update the summary of bug with the given summary string
+        """
+        # Update summary attribute
+        self.summary = summary
+
+        # Create update object
+        vals = self.bugzilla.build_update(summary=summary)
+
+        # Send update to bugzilla
+        return self.bugzilla.update_bugs(self.bug_id, vals)
 
     ########################
     # Experimental methods #
