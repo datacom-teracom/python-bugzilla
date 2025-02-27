@@ -21,14 +21,21 @@ class Bug(object):
         bug_id=ID   - if dict does not contain bug_id, this is required before
                       you can read any attributes or make modifications to this
                       bug.
+        autorefresh=BOOL - inform whether or not the attributes have to be
+                           refreshed at their first lookup.
+        dict_autoupdate=BOOL - inform whether or not the local raw data
+                               dictionary have to be updated at set/update
+                               calls.
     """
-    def __init__(self, bugzilla, bug_id=None, dict=None, autorefresh=False):
+    def __init__(self, bugzilla, bug_id=None, dict=None, autorefresh=False,
+                 dict_autoupdate=False):
         # pylint: disable=redefined-builtin
         # API had pre-existing issue that we can't change ('dict' usage)
 
         self.bugzilla = bugzilla
         self._rawdata = {}
         self.autorefresh = autorefresh
+        self.dict_autoupdate = dict_autoupdate
 
         # pylint: disable=protected-access
         self._aliases = self.bugzilla._get_bug_aliases()
@@ -160,6 +167,38 @@ class Bug(object):
         if 'id' not in self.__dict__ and 'bug_id' not in self.__dict__:
             raise TypeError("Bug object needs a bug_id")
 
+    def _update_field_in_dict(self, field, value):
+        """
+        Update internal dictionary in a specific field with a specific value.
+        """
+        newdict = self.get_raw_data()
+        newdict[field] = value
+        self._update_dict(newdict)
+
+    def _add_value_to_list_in_dict(self, field, value):
+        """
+        Add a value to a list field into dictionary.
+        """
+        # Refresh field to guarantee the list is updated with the other values
+        self.refresh(extra_fields=[field])
+
+        # Update local
+        newdict = self.get_raw_data()
+        newdict[field].append(value)
+        self._update_dict(newdict)
+
+    def _remove_value_from_list_in_dict(self, field, value):
+        """
+        Remove a value from a list field into dictionary.
+        """
+        # Refresh field to guarantee the list is updated with the other values
+        self.refresh(extra_fields=[field])
+
+        # Update local
+        newdict = self.get_raw_data()
+        newdict[field].remove(value)
+        self._update_dict(newdict)
+
 
     ##################
     # pickle helpers #
@@ -195,6 +234,10 @@ class Bug(object):
                                           comment_private=private)
         log.debug("setstatus: update=%s", vals)
 
+        # Update internal dictionary if necessary
+        if self.dict_autoupdate:
+            self._update_field_in_dict('status', status)
+
         return self.bugzilla.update_bugs(self.bug_id, vals)
 
     def close(self, resolution, dupeid=None, fixedin=None,
@@ -221,6 +264,11 @@ class Bug(object):
                                           fixed_in=fixedin,
                                           status=str("CLOSED"))
         log.debug("close: update=%s", vals)
+
+        # Update internal dictionary if necessary
+        if self.dict_autoupdate:
+            self._update_field_in_dict('status', str("CLOSED"))
+            self._update_field_in_dict('resolution', resolution)
 
         return self.bugzilla.update_bugs(self.bug_id, vals)
 
@@ -251,6 +299,13 @@ class Bug(object):
                                           comment=comment)
         log.debug("setassignee: update=%s", vals)
 
+        # Update internal dictionary if necessary
+        if self.dict_autoupdate:
+            if assigned_to:
+                self._update_field_in_dict('assigned_to', assigned_to)
+            if qa_contact:
+                self._update_field_in_dict('qa_contact', qa_contact)
+
         return self.bugzilla.update_bugs(self.bug_id, vals)
 
     def addcc(self, cclist, comment=None):
@@ -263,6 +318,10 @@ class Bug(object):
                                           cc_add=cclist)
         log.debug("addcc: update=%s", vals)
 
+        # Update internal dictionary if necessary
+        if self.dict_autoupdate:
+            self._add_value_to_list_in_dict('cc', cclist)
+
         return self.bugzilla.update_bugs(self.bug_id, vals)
 
     def deletecc(self, cclist, comment=None):
@@ -272,6 +331,10 @@ class Bug(object):
         vals = self.bugzilla.build_update(comment=comment,
                                           cc_remove=cclist)
         log.debug("deletecc: update=%s", vals)
+
+        # Update internal dictionary if necessary
+        if self.dict_autoupdate:
+            self._remove_value_from_list_in_dict('cc', cclist)
 
         return self.bugzilla.update_bugs(self.bug_id, vals)
 
@@ -356,6 +419,11 @@ class Bug(object):
         flaglist = []
         for key, value in flags.items():
             flaglist.append({"name": key, "status": value})
+
+        # Update internal dictionary if necessary
+        if self.dict_autoupdate:
+            self._update_field_in_dict('flags', flaglist)
+
         return self.bugzilla.update_bugs([self.bug_id],
             self.bugzilla.build_update(flags=flaglist))
 
@@ -372,6 +440,10 @@ class Bug(object):
         vals = self.bugzilla.build_update(summary=summary)
 
         log.debug("setsummary: update=%s", vals)
+
+        # Update internal dictionary if necessary
+        if self.dict_autoupdate:
+            self._update_field_in_dict('summary', summary)
 
         # Send update to bugzilla and return
         return self.bugzilla.update_bugs(self.bug_id, vals)

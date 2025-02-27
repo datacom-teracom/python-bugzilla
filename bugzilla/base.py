@@ -227,6 +227,7 @@ class Bugzilla(object):
         self._sslverify = sslverify
         self._cache = _BugzillaAPICache()
         self._bug_autorefresh = False
+        self._bug_dict_autoupdate = False
         self._is_redhat_bugzilla = False
 
         self._rcfile = _BugzillaRCFile()
@@ -1037,6 +1038,23 @@ class Bugzilla(object):
         self._bug_autorefresh = bool(val)
     bug_autorefresh = property(_get_bug_autorefresh, _set_bug_autorefresh)
 
+    def _get_bug_dict_autoupdate(self):
+        """
+        This value is passed to Bug.dict_autoupdate for all fetched bugs.
+        If True, instructs Bug to update local dictionary on each
+        set/add/update call.
+        """
+        return self._bug_dict_autoupdate
+
+    def _set_bug_dict_autoupdate(self, val):
+        """
+        This value is passed to Bug.dict_autoupdate for all fetched bugs.
+        If True, instructs Bug to update local dictionary on each
+        set/add/update call.
+        """
+        self._bug_dict_autoupdate = bool(val)
+    bug_dict_autoupdate = property(_get_bug_dict_autoupdate,
+                                   _set_bug_dict_autoupdate)
 
     def _getbug_extra_fields(self):
         """
@@ -1084,8 +1102,8 @@ class Bugzilla(object):
             else:
                 ids.append(idstr)
 
-        if (include_fields is not None and aliases
-                and "alias" not in include_fields):
+        if (include_fields is not None and aliases and
+                "alias" not in include_fields):
             # Extra field to prevent sorting (see below) from causing an error
             include_fields.append("alias")
 
@@ -1137,7 +1155,8 @@ class Bugzilla(object):
         data = self._getbug(objid,
             include_fields=include_fields, exclude_fields=exclude_fields,
             extra_fields=extra_fields)
-        return Bug(self, dict=data, autorefresh=self.bug_autorefresh)
+        return Bug(self, dict=data, autorefresh=self.bug_autorefresh,
+                   dict_autoupdate=self.bug_dict_autoupdate)
 
     def getbugs(self, idlist,
                 include_fields=None, exclude_fields=None, extra_fields=None,
@@ -1150,8 +1169,8 @@ class Bugzilla(object):
         data = self._getbugs(idlist, include_fields=include_fields,
             exclude_fields=exclude_fields, extra_fields=extra_fields,
             permissive=permissive)
-        return [(b and Bug(self, dict=b,
-                           autorefresh=self.bug_autorefresh)) or None
+        return [(b and Bug(self, dict=b, autorefresh=self.bug_autorefresh,
+                           dict_autoupdate=self.bug_dict_autoupdate)) or None
                 for b in data]
 
     def get_comments(self, idlist):
@@ -1341,7 +1360,8 @@ class Bugzilla(object):
         rawbugs = r.pop("bugs")
         log.debug("Query returned %s bugs", len(rawbugs))
         bugs = [Bug(self, dict=b,
-                autorefresh=self.bug_autorefresh) for b in rawbugs]
+                autorefresh=self.bug_autorefresh,
+                dict_autoupdate=self.bug_dict_autoupdate) for b in rawbugs]
 
         return bugs, r
 
@@ -1557,7 +1577,8 @@ class Bugzilla(object):
         s("minor_update", minor_update, bool)
 
         add_dict("blocks", blocks_add, blocks_remove, blocks_set)
-        add_dict("depends_on", depends_on_add, depends_on_remove, depends_on_set)
+        add_dict("depends_on", depends_on_add, depends_on_remove,
+                depends_on_set)
         add_dict("cc", cc_add, cc_remove)
         add_dict("groups", groups_add, groups_remove)
         add_dict("keywords", keywords_add, keywords_remove, keywords_set)
@@ -1828,7 +1849,8 @@ class Bugzilla(object):
         data = self._validate_createbug(*args, **kwargs)
         rawbug = self._backend.bug_create(data)
         return Bug(self, bug_id=rawbug["id"],
-                   autorefresh=self.bug_autorefresh)
+                   autorefresh=self.bug_autorefresh,
+                   dict_autoupdate=self.bug_dict_autoupdate)
 
 
     ##############################

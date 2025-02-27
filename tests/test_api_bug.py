@@ -221,3 +221,201 @@ def test_bug_weburl():
     bug_id = 1165434
     bug = fakebz.getbug(bug_id)
     assert bug.weburl == f"https:///show_bug.cgi?id={bug_id}"
+
+
+def test_dict_autoupdate():
+    def _get_fake_bug(dict_autoupdate):
+        fakebz = tests.mockbackend.make_bz(rhbz=True,
+            bug_get_args=None,
+            bug_get_return="data/mockreturn/test_getbug_dict_autoupdate.txt",
+            bug_update_args=None,
+            bug_update_return={})
+        fakebz.bug_dict_autoupdate = dict_autoupdate
+        return fakebz.getbug(1165434)
+
+    ################################
+    # With dict_autoupdate ENABLED #
+    ################################
+
+    # test Bug.setstatus
+    bug = _get_fake_bug(dict_autoupdate=True)
+    assert bug.status == 'NEW'
+    assert bug.get_raw_data()['status'] == 'NEW'
+    bug.setstatus('IN-PROGRESS')
+    assert bug.status == 'IN-PROGRESS'
+    assert bug.get_raw_data()['status'] == 'IN-PROGRESS'
+
+    # test Bug.close
+    bug = _get_fake_bug(dict_autoupdate=True)
+    assert bug.status == 'NEW'
+    assert bug.resolution == ''
+    assert bug.get_raw_data()['status'] == 'NEW'
+    assert bug.get_raw_data()['resolution'] == ''
+    bug.close('FIXED')
+    assert bug.status == 'CLOSED'
+    assert bug.resolution == 'FIXED'
+    assert bug.get_raw_data()['status'] == 'CLOSED'
+    assert bug.get_raw_data()['resolution'] == 'FIXED'
+
+    # test Bug.setassignee
+    bug = _get_fake_bug(dict_autoupdate=True)
+    assert bug.assigned_to == 'user1@datacom.com.br'
+    assert bug.get_raw_data()['assigned_to'] == 'user1@datacom.com.br'
+    bug.setassignee('user2@datacom.com.br')
+    assert bug.assigned_to == 'user2@datacom.com.br'
+    assert bug.get_raw_data()['assigned_to'] == 'user2@datacom.com.br'
+
+    # test Bug.addcc
+    bug = _get_fake_bug(dict_autoupdate=True)
+    assert bug.cc == ['user10@datacom.com.br', 'user11@datacom.com.br',
+                      'user12@datacom.com.br']
+    assert bug.get_raw_data()['cc'] == ['user10@datacom.com.br',
+                                        'user11@datacom.com.br',
+                                        'user12@datacom.com.br']
+    bug.addcc('user20@datacom.com.br')
+    assert bug.cc == ['user10@datacom.com.br', 'user11@datacom.com.br',
+                      'user12@datacom.com.br', 'user20@datacom.com.br']
+    assert bug.get_raw_data()['cc'] == ['user10@datacom.com.br',
+                                        'user11@datacom.com.br',
+                                        'user12@datacom.com.br',
+                                        'user20@datacom.com.br']
+
+    # test Bug.deletecc
+    bug = _get_fake_bug(dict_autoupdate=True)
+    assert bug.cc == ['user10@datacom.com.br', 'user11@datacom.com.br',
+                      'user12@datacom.com.br']
+    assert bug.get_raw_data()['cc'] == ['user10@datacom.com.br',
+                                        'user11@datacom.com.br',
+                                        'user12@datacom.com.br']
+    bug.deletecc('user11@datacom.com.br')
+    assert bug.cc == ['user10@datacom.com.br', 'user12@datacom.com.br']
+    assert bug.get_raw_data()['cc'] == ['user10@datacom.com.br',
+                                        'user12@datacom.com.br']
+
+    # test Bug.updateflags
+    bug = _get_fake_bug(dict_autoupdate=True)
+    assert bug.flags == [
+        {'name': 'flag1', 'status': '?'},
+        {'name': 'flag2', 'status': '?'},
+        {'name': 'flag3', 'status': '?'}
+    ]
+    assert bug.get_raw_data()['flags'] == [
+        {'name': 'flag1', 'status': '?'},
+        {'name': 'flag2', 'status': '?'},
+        {'name': 'flag3', 'status': '?'}
+    ]
+    bug.updateflags({'flag1': '?', 'flag2': '+', 'flag3': '-',
+                     'flag4': '?'})
+    assert bug.flags == [
+        {'name': 'flag1', 'status': '?'},
+        {'name': 'flag2', 'status': '+'},
+        {'name': 'flag3', 'status': '-'},
+        {'name': 'flag4', 'status': '?'}
+    ]
+    assert bug.get_raw_data()['flags'] == [
+        {'name': 'flag1', 'status': '?'},
+        {'name': 'flag2', 'status': '+'},
+        {'name': 'flag3', 'status': '-'},
+        {'name': 'flag4', 'status': '?'}
+    ]
+
+    # test Bug.setsummary
+    bug = _get_fake_bug(dict_autoupdate=True)
+    assert bug.summary == 'Yet another problem'
+    assert bug.get_raw_data()['summary'] == 'Yet another problem'
+    bug.setsummary('A really weird problem')
+    assert bug.summary == 'A really weird problem'
+    assert bug.get_raw_data()['summary'] == 'A really weird problem'
+
+    #################################
+    # With dict_autoupdate DISABLED #
+    #################################
+
+    # test Bug.setstatus
+    bug = _get_fake_bug(dict_autoupdate=False)
+    assert bug.status == 'NEW'
+    assert bug.get_raw_data()['status'] == 'NEW'
+    bug.setstatus('IN-PROGRESS')
+    assert bug.status == 'NEW'
+    assert bug.get_raw_data()['status'] == 'NEW'
+
+    # test Bug.close
+    bug = _get_fake_bug(dict_autoupdate=False)
+    assert bug.status == 'NEW'
+    assert bug.resolution == ''
+    assert bug.get_raw_data()['status'] == 'NEW'
+    assert bug.get_raw_data()['resolution'] == ''
+    bug.close('FIXED')
+    assert bug.status == 'NEW'
+    assert bug.resolution == ''
+    assert bug.get_raw_data()['status'] == 'NEW'
+    assert bug.get_raw_data()['resolution'] == ''
+
+    # test Bug.setassignee
+    bug = _get_fake_bug(dict_autoupdate=False)
+    assert bug.assigned_to == 'user1@datacom.com.br'
+    assert bug.get_raw_data()['assigned_to'] == 'user1@datacom.com.br'
+    bug.setassignee('user2@datacom.com.br')
+    assert bug.assigned_to == 'user1@datacom.com.br'
+    assert bug.get_raw_data()['assigned_to'] == 'user1@datacom.com.br'
+
+    # test Bug.addcc
+    bug = _get_fake_bug(dict_autoupdate=False)
+    assert bug.cc == ['user10@datacom.com.br', 'user11@datacom.com.br',
+                      'user12@datacom.com.br']
+    assert bug.get_raw_data()['cc'] == ['user10@datacom.com.br',
+                                        'user11@datacom.com.br',
+                                        'user12@datacom.com.br']
+    bug.addcc('user20@datacom.com.br')
+    assert bug.cc == ['user10@datacom.com.br', 'user11@datacom.com.br',
+                      'user12@datacom.com.br']
+    assert bug.get_raw_data()['cc'] == ['user10@datacom.com.br',
+                                        'user11@datacom.com.br',
+                                        'user12@datacom.com.br']
+
+    # test Bug.deletecc
+    bug = _get_fake_bug(dict_autoupdate=False)
+    assert bug.cc == ['user10@datacom.com.br', 'user11@datacom.com.br',
+                      'user12@datacom.com.br']
+    assert bug.get_raw_data()['cc'] == ['user10@datacom.com.br',
+                                        'user11@datacom.com.br',
+                                        'user12@datacom.com.br']
+    bug.deletecc('user11@datacom.com.br')
+    assert bug.cc == ['user10@datacom.com.br', 'user11@datacom.com.br',
+                      'user12@datacom.com.br']
+    assert bug.get_raw_data()['cc'] == ['user10@datacom.com.br',
+                                        'user11@datacom.com.br',
+                                        'user12@datacom.com.br']
+
+    # test Bug.updateflags
+    bug = _get_fake_bug(dict_autoupdate=False)
+    assert bug.flags == [
+        {'name': 'flag1', 'status': '?'},
+        {'name': 'flag2', 'status': '?'},
+        {'name': 'flag3', 'status': '?'}
+    ]
+    assert bug.get_raw_data()['flags'] == [
+        {'name': 'flag1', 'status': '?'},
+        {'name': 'flag2', 'status': '?'},
+        {'name': 'flag3', 'status': '?'}
+    ]
+    bug.updateflags({'flag1': '?', 'flag2': '+', 'flag3': '-',
+                     'flag4': '?'})
+    assert bug.flags == [
+        {'name': 'flag1', 'status': '?'},
+        {'name': 'flag2', 'status': '?'},
+        {'name': 'flag3', 'status': '?'}
+    ]
+    assert bug.get_raw_data()['flags'] == [
+        {'name': 'flag1', 'status': '?'},
+        {'name': 'flag2', 'status': '?'},
+        {'name': 'flag3', 'status': '?'}
+    ]
+
+    # test Bug.setsummary
+    bug = _get_fake_bug(dict_autoupdate=False)
+    assert bug.summary == 'Yet another problem'
+    assert bug.get_raw_data()['summary'] == 'Yet another problem'
+    bug.setsummary('A really weird problem')
+    assert bug.summary == 'Yet another problem'
+    assert bug.get_raw_data()['summary'] == 'Yet another problem'
