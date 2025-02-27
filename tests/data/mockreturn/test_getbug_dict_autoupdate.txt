@@ -1,0 +1,15 @@
+{'faults': [],
+ "bugs" : [{
+  'summary': 'Yet another problem',
+  'id': 1165434,
+  'status': 'NEW',
+  'resolution': '',
+  'assigned_to': 'user1@datacom.com.br',
+  'cc': ['user10@datacom.com.br',
+         'user11@datacom.com.br',
+         'user12@datacom.com.br'],
+  'flags': [{'name': 'flag1', 'status': '?'},
+            {'name': 'flag2', 'status': '?'},
+            {'name': 'flag3', 'status': '?'}]
+ }]
+}
