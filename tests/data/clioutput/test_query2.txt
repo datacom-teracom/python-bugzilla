@@ -27,6 +27,7 @@ ATTRIBUTE[cf_verified]: []
 ATTRIBUTE[classification]: Red Hat
 ATTRIBUTE[comments]: ['DICT SCRUBBED']
 ATTRIBUTE[depends_on]: [112233]
+ATTRIBUTE[dict_autoupdate]: False
 ATTRIBUTE[docs_contact]: 
 ATTRIBUTE[estimated_time]: 0.0
 ATTRIBUTE[external_bugs]: ['DICT SCRUBBED']
