@@ -1,5 +1,6 @@
 import sys
-sys.path.append("/home/george.redivo/repositories/dev/python-bugzilla/")
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from bugzilla.base import Bugzilla
 
 
