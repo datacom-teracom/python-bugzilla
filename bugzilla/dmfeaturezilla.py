@@ -15,7 +15,7 @@ class DmFeaturezilla(Bugzilla):
 
     def _add_to_dict(self, dictionary, field, value):
         """
-        Add the given value to to the given field in the given dictionary if
+        Add the given value to the given field in the given dictionary if
         value is not None.
 
         Return updated dictionary.
